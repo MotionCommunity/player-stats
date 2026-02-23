@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOTION — Player Stats</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#010306;--surface:#050e1a;--card:#071525;
+  --border:#0c2240;--border2:#0f2d54;
+  --blue:#1565ff;--blue-l:#4d8bff;
+  --gold:#f0c040;--silver:#b8cce0;--bronze:#c87941;
+  --white:#eaf2ff;--text:#b8d4f0;--muted:#3d6080;
+  --danger:#ff3a5c;--success:#22d98a;
+  --c2v2:#4d8bff;--c3v3:#22d98a;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-serif;min-height:100vh;overflow-x:hidden;}
+
+.bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(21,101,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(21,101,255,.03) 1px,transparent 1px);
+  background-size:48px 48px;}
+.bg-glow{position:fixed;top:-300px;left:50%;transform:translateX(-50%);width:1000px;height:600px;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse,rgba(21,101,255,.1) 0%,transparent 70%);}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between;
+  padding:0 40px;height:60px;background:rgba(1,3,6,.95);border-bottom:1px solid var(--border);backdrop-filter:blur(16px);}
+.nav-logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:8px;color:var(--white);text-decoration:none;}
+.nav-logo span{color:var(--blue-l);}
+.live-pill{display:flex;align-items:center;gap:6px;font-family:'Share Tech Mono',monospace;font-size:10px;
+  letter-spacing:2px;color:var(--success);border:1px solid rgba(34,217,138,.3);padding:4px 12px;background:rgba(34,217,138,.05);}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 8px var(--success);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* HERO */
+.hero{position:relative;z-index:10;padding:60px 40px 48px;text-align:center;border-bottom:1px solid var(--border);overflow:hidden;}
+.hero::after{content:'';position:absolute;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(21,101,255,.5),transparent);
+  animation:scan 5s ease-in-out infinite;pointer-events:none;}
+@keyframes scan{0%{top:5%;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:95%;opacity:0}}
+.hero-eyebrow{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:5px;color:var(--blue-l);margin-bottom:12px;opacity:0;animation:up .5s .1s forwards;}
+.hero-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(56px,10vw,110px);letter-spacing:8px;color:var(--white);line-height:.95;
+  text-shadow:0 0 80px rgba(21,101,255,.35);opacity:0;animation:up .5s .2s forwards;}
+.hero-title span{color:var(--blue-l);}
+.hero-sub{font-size:16px;font-weight:300;color:var(--muted);margin-top:10px;letter-spacing:1px;opacity:0;animation:up .5s .3s forwards;}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+.hero-stats{display:flex;justify-content:center;gap:0;margin-top:36px;border:1px solid var(--border);background:var(--card);
+  max-width:640px;margin-left:auto;margin-right:auto;opacity:0;animation:up .5s .4s forwards;}
+.hero-stat{flex:1;padding:20px 16px;text-align:center;border-right:1px solid var(--border);}
+.hero-stat:last-child{border-right:none;}
+.hs-val{font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--blue-l);line-height:1;}
+.hs-label{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);margin-top:2px;}
+
+/* MAIN */
+.main{position:relative;z-index:10;max-width:1200px;margin:0 auto;padding:40px 24px 80px;}
+
+/* SECTION LABEL */
+.section-label{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:4px;color:var(--blue-l);
+  margin-bottom:16px;display:flex;align-items:center;gap:12px;}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* PODIUM */
+.podium{display:grid;grid-template-columns:1fr 1.12fr 1fr;gap:2px;align-items:end;margin-bottom:48px;}
+.podium-card{background:var(--card);border:1px solid var(--border);padding:26px 18px;text-align:center;
+  position:relative;overflow:hidden;cursor:pointer;transition:transform .2s,box-shadow .2s;}
+.podium-card:hover{transform:translateY(-3px);}
+.p1{border-color:var(--gold);background:linear-gradient(160deg,#1a1200,var(--card));box-shadow:0 0 50px rgba(240,192,64,.1);}
+.p1::before,.p2::before,.p3::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.p1::before{background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+.p2::before{background:linear-gradient(90deg,transparent,var(--silver),transparent);}
+.p3::before{background:linear-gradient(90deg,transparent,var(--bronze),transparent);}
+.p2{border-color:rgba(184,204,224,.25);}
+.p3{border-color:rgba(200,121,65,.25);}
+.pod-medal{font-size:22px;margin-bottom:6px;display:block;}
+.pod-place{font-family:'Bebas Neue',sans-serif;font-size:46px;line-height:1;margin-bottom:2px;}
+.p1 .pod-place{color:var(--gold);text-shadow:0 0 24px rgba(240,192,64,.4);}
+.p2 .pod-place{color:var(--silver);}
+.p3 .pod-place{color:var(--bronze);}
+.pod-name{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--white);margin-bottom:2px;}
+.pod-team{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:6px;}
+.pod-fmts{display:flex;justify-content:center;gap:4px;margin-bottom:12px;}
+.pod-rating{font-family:'Bebas Neue',sans-serif;font-size:38px;line-height:1;}
+.p1 .pod-rating{color:var(--gold);}
+.p2 .pod-rating{color:var(--silver);}
+.p3 .pod-rating{color:var(--bronze);}
+.pod-rating-lbl{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);margin-top:2px;}
+.pod-stats{display:flex;justify-content:center;gap:14px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+.ps-v{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--text);}
+.ps-l{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--muted);}
+
+/* FORMAT BADGES */
+.fmt{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1px;padding:2px 7px;border:1px solid;}
+.fmt-2v2{border-color:rgba(77,139,255,.5);color:var(--c2v2);background:rgba(77,139,255,.06);}
+.fmt-3v3{border-color:rgba(34,217,138,.5);color:var(--c3v3);background:rgba(34,217,138,.06);}
+.fmt-both{border-color:rgba(240,192,64,.4);color:var(--gold);background:rgba(240,192,64,.06);}
+
+/* CONTROLS */
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px;}
+.search-wrap{position:relative;flex:1;min-width:200px;}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none;}
+.search-input{width:100%;background:var(--card);border:1px solid var(--border);color:var(--white);
+  font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:500;padding:11px 14px 11px 40px;
+  outline:none;transition:border-color .2s;letter-spacing:.5px;}
+.search-input::placeholder{color:var(--muted);font-weight:400;}
+.search-input:focus{border-color:var(--blue-l);}
+.fbtn{background:var(--card);border:1px solid var(--border);color:var(--muted);font-family:'Share Tech Mono',monospace;
+  font-size:10px;letter-spacing:2px;padding:11px 16px;cursor:pointer;transition:all .2s;text-transform:uppercase;white-space:nowrap;}
+.fbtn:hover,.fbtn.on{background:rgba(21,101,255,.1);border-color:var(--blue);color:var(--blue-l);}
+.fbtn.on{box-shadow:0 0 14px rgba(21,101,255,.15);}
+.sep-v{width:1px;height:32px;background:var(--border);flex-shrink:0;}
+.res-count{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;white-space:nowrap;margin-left:auto;}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;min-width:860px;}
+thead tr{background:var(--surface);border-bottom:1px solid var(--border);}
+th{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);
+  padding:12px 12px;text-align:left;white-space:nowrap;cursor:pointer;user-select:none;transition:color .2s;}
+th:hover{color:var(--blue-l);}
+th.sorted{color:var(--blue-l);}
+th.sorted::after{content:attr(data-dir);margin-left:3px;font-size:8px;}
+th:first-child{width:44px;text-align:center;cursor:default;}
+tbody tr{border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:rgba(21,101,255,.04);}
+tbody tr.rank-1{background:rgba(240,192,64,.035);}
+tbody tr.rank-2{background:rgba(184,204,224,.018);}
+tbody tr.rank-3{background:rgba(200,121,65,.025);}
+td{padding:12px 12px;font-size:14px;font-weight:500;white-space:nowrap;}
+td:first-child{text-align:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--muted);}
+tbody tr.rank-1 td:first-child{color:var(--gold);}
+tbody tr.rank-2 td:first-child{color:var(--silver);}
+tbody tr.rank-3 td:first-child{color:var(--bronze);}
+
+.td-player{display:flex;align-items:center;gap:10px;}
+.p-av{width:30px;height:30px;background:linear-gradient(135deg,var(--blue),#0a2f80);display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--white);flex-shrink:0;border:1px solid var(--border2);}
+.p-nm{font-weight:700;color:var(--white);letter-spacing:.3px;font-size:15px;}
+.p-tm{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:1px;}
+.p-fmts{display:flex;gap:3px;margin-top:3px;}
+
+.str-wrap{display:flex;align-items:center;gap:8px;}
+.str-bg{width:56px;height:4px;background:var(--border);flex-shrink:0;}
+.str-fill{height:100%;}
+.str-num{font-family:'Bebas Neue',sans-serif;font-size:18px;}
+
+/* NO RESULTS */
+.no-res{padding:60px;text-align:center;display:none;}
+.no-res-icon{font-size:40px;margin-bottom:10px;}
+.no-res-txt{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;color:var(--border2);}
+
+/* ── MODAL ─────────────────────────────────────── */
+.overlay{position:fixed;inset:0;background:rgba(1,3,6,.88);z-index:500;display:flex;align-items:center;justify-content:center;
+  padding:20px;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(10px);}
+.overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--card);border:1px solid var(--border);width:100%;max-width:600px;
+  position:relative;transform:translateY(16px);transition:transform .25s;max-height:92vh;overflow-y:auto;}
+.overlay.open .modal{transform:translateY(0);}
+.modal-topbar{height:3px;background:linear-gradient(90deg,var(--blue),var(--blue-l),var(--c3v3));background-size:200%;animation:shift 3s linear infinite;}
+@keyframes shift{0%{background-position:0%}100%{background-position:200%}}
+.m-close{position:absolute;top:14px;right:14px;background:none;border:1px solid var(--border);color:var(--muted);
+  font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;padding:5px 10px;cursor:pointer;transition:all .2s;z-index:1;}
+.m-close:hover{border-color:var(--danger);color:var(--danger);}
+
+/* Modal header */
+.m-head{padding:28px 28px 20px;display:flex;gap:20px;align-items:flex-start;border-bottom:1px solid var(--border);}
+.m-av{width:64px;height:64px;background:linear-gradient(135deg,var(--blue),#0a2f80);display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--white);flex-shrink:0;border:1px solid var(--border2);}
+.m-info{flex:1;}
+.m-name{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;color:var(--white);line-height:1;margin-bottom:3px;}
+.m-team{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+.m-badges{display:flex;gap:6px;flex-wrap:wrap;}
+.m-rating{text-align:right;flex-shrink:0;}
+.m-rat-num{font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:1;}
+.m-rat-lbl{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);}
+.m-rat-tier{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;margin-top:2px;}
+
+/* Format tabs in modal */
+.m-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);}
+.m-tab{flex:1;padding:12px;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;
+  color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all .2s;text-transform:uppercase;}
+.m-tab:hover{color:var(--text);}
+.m-tab.active{color:var(--blue-l);border-bottom-color:var(--blue-l);}
+.m-tab.tab-2v2.active{color:var(--c2v2);border-bottom-color:var(--c2v2);}
+.m-tab.tab-3v3.active{color:var(--c3v3);border-bottom-color:var(--c3v3);}
+
+/* Modal stat grid */
+.m-grid{display:grid;grid-template-columns:repeat(3,1fr);}
+.m-stat{padding:18px 20px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);text-align:center;}
+.m-stat:nth-child(3n){border-right:none;}
+.m-stat:nth-last-child(-n+3){border-bottom:none;}
+.ms-v{font-family:'Bebas Neue',sans-serif;font-size:30px;line-height:1;color:var(--white);}
+.ms-l{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);margin-top:2px;}
+.ms-s{font-size:11px;color:var(--blue-l);margin-top:2px;}
+
+/* Shot bar */
+.m-shot{padding:18px 24px;border-top:1px solid var(--border);}
+.shot-row{display:flex;align-items:center;gap:12px;margin-top:8px;}
+.shot-bg{flex:1;height:5px;background:var(--border);}
+.shot-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--blue-l));transition:width .7s;}
+.shot-num{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--blue-l);width:50px;text-align:right;flex-shrink:0;}
+
+/* Tab panels */
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* COMBINED row highlight */
+.m-tab.combined{background:rgba(240,192,64,.04);}
+.m-tab.combined.active{color:var(--gold);border-bottom-color:var(--gold);}
+
+/* Update note */
+.update-note{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--blue-l);
+  padding:18px 22px;margin-top:28px;font-size:14px;color:var(--text);line-height:1.7;}
+.un-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--blue-l);margin-bottom:6px;}
+.un-title+p code{font-family:'Share Tech Mono',monospace;font-size:11px;background:rgba(21,101,255,.1);
+  border:1px solid var(--border);color:var(--blue-l);padding:1px 6px;}
+
+/* FOOTER */
+.footer{position:relative;z-index:10;border-top:1px solid var(--border);padding:22px 40px;
+  display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto;}
+.f-logo{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:6px;color:var(--muted);}
+.f-logo span{color:var(--blue);}
+.f-txt{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--border2);}
+
+@media(max-width:768px){
+  .nav,.footer{padding:0 16px;}
+  .hero{padding:48px 16px 32px;}
+  .main{padding:24px 12px 60px;}
+  .podium{grid-template-columns:1fr;}
+  .controls{flex-direction:column;align-items:stretch;}
+  .res-count{margin-left:0;}
+  .m-head{flex-direction:column;}
+  .m-rating{text-align:left;}
+  .m-grid{grid-template-columns:repeat(2,1fr);}
+  .m-stat:nth-child(3n){border-right:1px solid var(--border);}
+  .m-stat:nth-child(2n){border-right:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+
+<nav class="nav">
+  <a href="#" class="nav-logo">MOTI<span>ON</span></a>
+  <div class="live-pill"><div class="live-dot"></div>SEASON 1 LIVE</div>
+</nav>
+
+<div class="hero">
+  <div class="hero-eyebrow">// MOTION ROCKET LEAGUE — COMMUNITY STATS</div>
+  <div class="hero-title">PLAYER <span>STATS</span></div>
+  <div class="hero-sub">Search · Sort · Filter · Click any player for full profile</div>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="hs-val" id="h-players">0</div><div class="hs-label">PLAYERS</div></div>
+    <div class="hero-stat"><div class="hs-val" id="h-teams">0</div><div class="hs-label">TEAMS</div></div>
+    <div class="hero-stat"><div class="hs-val" id="h-goals">0</div><div class="hs-label">TOTAL GOALS</div></div>
+    <div class="hero-stat"><div class="hs-val" id="h-rating">0</div><div class="hs-label">AVG RATING</div></div>
+    <div class="hero-stat"><div class="hs-val" id="h-multi">0</div><div class="hs-label">MULTI-FORMAT</div></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="section-label">🏆 TOP 3 — MVP RACE</div>
+  <div class="podium" id="podium"></div>
+
+  <div class="controls">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input class="search-input" id="search" type="text" placeholder="Search player or team...">
+    </div>
+    <button class="fbtn on" id="btn-all-team" onclick="setTeam('ALL',this)">ALL TEAMS</button>
+    <div id="team-btns" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+    <div class="sep-v"></div>
+    <button class="fbtn on" onclick="setFmt('ALL',this)">ALL MODES</button>
+    <button class="fbtn" onclick="setFmt('2v2',this)">2V2</button>
+    <button class="fbtn" onclick="setFmt('3v3',this)">3V3</button>
+    <button class="fbtn" onclick="setFmt('both',this)">MULTI ⚡</button>
+    <div class="res-count" id="res-count">— PLAYERS</div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th onclick="sortBy('name')"    data-col="name">PLAYER</th>
+          <th onclick="sortBy('team')"    data-col="team">TEAM</th>
+          <th>MODES</th>
+          <th onclick="sortBy('gp')"      data-col="gp">GP</th>
+          <th onclick="sortBy('goals')"   data-col="goals">GOALS</th>
+          <th onclick="sortBy('assists')" data-col="assists">ASSISTS</th>
+          <th onclick="sortBy('saves')"   data-col="saves">SAVES</th>
+          <th onclick="sortBy('shots')"   data-col="shots">SHOTS</th>
+          <th onclick="sortBy('shotpct')" data-col="shotpct">SHOT%</th>
+          <th onclick="sortBy('gpg')"     data-col="gpg">G/GM</th>
+          <th onclick="sortBy('apg')"     data-col="apg">A/GM</th>
+          <th onclick="sortBy('scorepg')" data-col="scorepg">SC/GM</th>
+          <th onclick="sortBy('rating')"  data-col="rating">⚡ RATING</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="no-res" id="no-res">
+      <div class="no-res-icon">🔍</div>
+      <div class="no-res-txt">NO PLAYERS FOUND</div>
+    </div>
+  </div>
+
+  <div class="update-note">
+    <div class="un-title">📋 How to Update Stats</div>
+    <p>After each event: export from <strong>ballchasing.com</strong> → copy values into the <code>PLAYERS</code> array at the top of this file's script. Players with multiple formats get one <code>stats</code> entry per format. Everything recalculates automatically. Save → re-upload to GitHub → live in 60 seconds.</p>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="closeOverlay(event)">
+  <div class="modal" id="modal">
+    <div class="modal-topbar"></div>
+    <button class="m-close" onclick="closeModal()">✕ CLOSE</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<footer style="position:relative;z-index:10;border-top:1px solid var(--border);">
+  <div class="footer">
+    <div class="f-logo">MOTI<span>ON</span></div>
+    <div class="f-txt">Stats updated after each event · Season 1 · Motion Tournament Series</div>
+  </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  ⬇  PLAYER DATA — EDIT THIS SECTION AFTER EACH TOURNAMENT
+//
+//  Each player has:
+//    name   - their IGN
+//    team   - their team name
+//    mvps   - total MVP awards across all formats
+//    stats  - array of per-format stat blocks
+//             (add one block per format they play)
+//
+//  Per-format block fields:
+//    format  - "2v2" or "3v3"
+//    gp      - games played in that format
+//    goals, assists, saves, shots, score, demos
+// ═══════════════════════════════════════════════════════════
+const PLAYERS = [
+  {
+    name: "Velocity", team: "Alpha", mvps: 3,
+    stats: [
+      { format:"3v3", gp:8, goals:18, assists:12, saves:9,  shots:28, score:4200, demos:5  },
+      { format:"2v2", gp:5, goals:11, assists:8,  saves:6,  shots:18, score:2600, demos:3  },
+    ]
+  },
+  {
+    name: "NitroKing", team: "Alpha", mvps: 1,
+    stats: [
+      { format:"3v3", gp:8, goals:14, assists:17, saves:11, shots:22, score:3900, demos:2  },
+    ]
+  },
+  {
+    name: "GhostRide", team: "Bravo", mvps: 3,
+    stats: [
+      { format:"3v3", gp:8, goals:22, assists:8,  saves:6,  shots:35, score:5100, demos:9  },
+      { format:"2v2", gp:6, goals:16, assists:5,  saves:4,  shots:24, score:3800, demos:6  },
+    ]
+  },
+  {
+    name: "Aqua", team: "Bravo", mvps: 0,
+    stats: [
+      { format:"2v2", gp:8, goals:10, assists:14, saves:15, shots:18, score:3200, demos:1  },
+    ]
+  },
+  {
+    name: "Phantom", team: "Alpha", mvps: 1,
+    stats: [
+      { format:"3v3", gp:8, goals:16, assists:11, saves:13, shots:25, score:4400, demos:4  },
+      { format:"2v2", gp:4, goals:8,  assists:7,  saves:9,  shots:14, score:2100, demos:2  },
+    ]
+  },
+  {
+    name: "Cryo", team: "Bravo", mvps: 2,
+    stats: [
+      { format:"3v3", gp:8, goals:19, assists:9,  saves:7,  shots:30, score:4700, demos:7  },
+    ]
+  },
+  {
+    name: "Solstice", team: "Gamma", mvps: 0,
+    stats: [
+      { format:"2v2", gp:8, goals:12, assists:13, saves:10, shots:20, score:3600, demos:3  },
+    ]
+  },
+  {
+    name: "BlastWave", team: "Gamma", mvps: 5,
+    stats: [
+      { format:"3v3", gp:8, goals:25, assists:6,  saves:4,  shots:38, score:5600, demos:12 },
+      { format:"2v2", gp:6, goals:18, assists:4,  saves:3,  shots:26, score:4100, demos:8  },
+    ]
+  },
+  {
+    name: "Mirrage", team: "Gamma", mvps: 0,
+    stats: [
+      { format:"2v2", gp:8, goals:8,  assists:16, saves:18, shots:14, score:3000, demos:1  },
+      { format:"3v3", gp:5, goals:6,  assists:9,  saves:11, shots:10, score:1900, demos:0  },
+    ]
+  },
+  {
+    name: "IgniteRL", team: "Delta", mvps: 2,
+    stats: [
+      { format:"3v3", gp:8, goals:20, assists:10, saves:8,  shots:32, score:4900, demos:6  },
+    ]
+  },
+  {
+    name: "ZeroG", team: "Delta", mvps: 0,
+    stats: [
+      { format:"2v2", gp:8, goals:6,  assists:18, saves:20, shots:12, score:2800, demos:0  },
+    ]
+  },
+  {
+    name: "Razorbeak", team: "Delta", mvps: 5,
+    stats: [
+      { format:"3v3", gp:8, goals:30, assists:5,  saves:3,  shots:44, score:6200, demos:15 },
+      { format:"2v2", gp:6, goals:20, assists:3,  saves:2,  shots:30, score:4300, demos:10 },
+    ]
+  },
+  {
+    name: "NovaDrift", team: "Echo", mvps: 1,
+    stats: [
+      { format:"2v2", gp:6, goals:9,  assists:11, saves:8,  shots:16, score:2900, demos:2  },
+      { format:"3v3", gp:4, goals:7,  assists:6,  saves:5,  shots:12, score:1800, demos:1  },
+    ]
+  },
+  {
+    name: "ColdFront", team: "Echo", mvps: 0,
+    stats: [
+      { format:"2v2", gp:6, goals:7,  assists:9,  saves:12, shots:13, score:2400, demos:1  },
+    ]
+  },
+  {
+    name: "Axiom", team: "Foxtrot", mvps: 1,
+    stats: [
+      { format:"3v3", gp:6, goals:11, assists:15, saves:9,  shots:19, score:3400, demos:2  },
+      { format:"2v2", gp:5, goals:8,  assists:10, saves:7,  shots:14, score:2500, demos:1  },
+    ]
+  },
+];
+// ═══════════════════════════════════════════════════════════
+
+// ── COMPUTE combined stats per player ─────────────────────
+function sumStats(statsArr) {
+  return statsArr.reduce((acc, s) => ({
+    gp:      acc.gp      + s.gp,
+    goals:   acc.goals   + s.goals,
+    assists: acc.assists  + s.assists,
+    saves:   acc.saves   + s.saves,
+    shots:   acc.shots   + s.shots,
+    score:   acc.score   + s.score,
+    demos:   acc.demos   + s.demos,
+  }), { gp:0, goals:0, assists:0, saves:0, shots:0, score:0, demos:0 });
+}
+
+function derived(s) {
+  const shotpct = s.shots > 0 ? s.goals / s.shots : 0;
+  const gpg     = s.gp > 0 ? s.goals / s.gp : 0;
+  const apg     = s.gp > 0 ? s.assists / s.gp : 0;
+  const spg     = s.gp > 0 ? s.saves / s.gp : 0;
+  const scorepg = s.gp > 0 ? s.score / s.gp : 0;
+  const rating  = Math.min(100, Math.round(
+    (Math.min(shotpct / .75, 1) * 30) +
+    (Math.min(gpg     / 4,   1) * 25) +
+    (Math.min(apg     / 3,   1) * 15) +
+    (Math.min(spg     / 3,   1) * 15) +
+    (Math.min(scorepg / 800, 1) * 15)
+  ));
+  return { ...s, shotpct, gpg, apg, spg, scorepg, rating };
+}
+
+const ALL = PLAYERS.map(p => {
+  const combined = derived(sumStats(p.stats));
+  const formats  = [...new Set(p.stats.map(s => s.format))].sort();
+  const perFmt   = {};
+  p.stats.forEach(s => {
+    if (!perFmt[s.format]) perFmt[s.format] = [];
+    perFmt[s.format].push(s);
+  });
+  // Sum per format if played multiple tournaments in same format
+  const fmtDerived = {};
+  Object.entries(perFmt).forEach(([fmt, arr]) => {
+    fmtDerived[fmt] = derived(sumStats(arr));
+  });
+  return { ...p, combined, formats, fmtDerived };
+}).sort((a,b) => b.combined.rating - a.combined.rating);
+
+// ── STATE ──────────────────────────────────────────────────
+let sortCol = 'rating', sortDir = -1;
+let teamF = 'ALL', fmtF = 'ALL', searchQ = '';
+
+// ── INIT ───────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  buildHero();
+  buildTeamBtns();
+  buildPodium();
+  renderTable();
+  document.getElementById('search').addEventListener('input', e => {
+    searchQ = e.target.value.toLowerCase();
+    renderTable();
+  });
+});
+
+function buildHero() {
+  const teams  = new Set(ALL.map(p => p.team));
+  const goals  = ALL.reduce((s,p) => s + p.combined.goals, 0);
+  const avgRat = Math.round(ALL.reduce((s,p) => s + p.combined.rating, 0) / ALL.length);
+  const multi  = ALL.filter(p => p.formats.length > 1).length;
+  document.getElementById('h-players').textContent = ALL.length;
+  document.getElementById('h-teams').textContent   = teams.size;
+  document.getElementById('h-goals').textContent   = goals;
+  document.getElementById('h-rating').textContent  = avgRat;
+  document.getElementById('h-multi').textContent   = multi;
+}
+
+function buildTeamBtns() {
+  const teams = [...new Set(ALL.map(p => p.team))].sort();
+  const wrap  = document.getElementById('team-btns');
+  teams.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'fbtn';
+    b.textContent = t;
+    b.onclick = () => setTeam(t, b);
+    wrap.appendChild(b);
+  });
+}
+
+function buildPodium() {
+  const top3   = ALL.slice(0, 3);
+  const order  = [1, 0, 2];
+  const medals = ['🥇','🥈','🥉'];
+  const places = ['1ST','2ND','3RD'];
+  const cls    = ['p1','p2','p3'];
+  const el     = document.getElementById('podium');
+  el.innerHTML = '';
+  order.forEach(i => {
+    const p = top3[i]; if (!p) return;
+    const c = p.combined;
+    const fmtBadges = p.formats.map(f => `<span class="fmt fmt-${f}">${f}</span>`).join('');
+    const card = document.createElement('div');
+    card.className = `podium-card ${cls[i]}`;
+    card.onclick = () => openModal(p);
+    card.innerHTML = `
+      <span class="pod-medal">${medals[i]}</span>
+      <div class="pod-place">${places[i]}</div>
+      <div class="pod-name">${p.name}</div>
+      <div class="pod-team">${p.team}</div>
+      <div class="pod-fmts">${fmtBadges}</div>
+      <div class="pod-rating">${c.rating}</div>
+      <div class="pod-rating-lbl">STRENGTH RATING</div>
+      <div class="pod-stats">
+        <div><div class="ps-v">${c.goals}</div><div class="ps-l">GOALS</div></div>
+        <div><div class="ps-v">${(c.shotpct*100).toFixed(0)}%</div><div class="ps-l">SHOT%</div></div>
+        <div><div class="ps-v">${p.mvps}</div><div class="ps-l">MVPs</div></div>
+      </div>`;
+    el.appendChild(card);
+  });
+}
+
+// ── FILTERS ────────────────────────────────────────────────
+function setTeam(t, btn) {
+  teamF = t;
+  document.getElementById('btn-all-team').classList.remove('on');
+  document.querySelectorAll('#team-btns .fbtn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  renderTable();
+}
+function setFmt(f, btn) {
+  fmtF = f;
+  document.querySelectorAll('.controls .fbtn').forEach(b => {
+    if (['ALL MODES','2V2','3V3','MULTI ⚡'].includes(b.textContent.trim())) b.classList.remove('on');
+  });
+  btn.classList.add('on');
+  renderTable();
+}
+function sortBy(col) {
+  if (sortCol === col) sortDir *= -1;
+  else { sortCol = col; sortDir = -1; }
+  document.querySelectorAll('th[data-col]').forEach(th => {
+    th.classList.remove('sorted'); th.removeAttribute('data-dir');
+  });
+  const th = document.querySelector(`th[data-col="${col}"]`);
+  if (th) { th.classList.add('sorted'); th.setAttribute('data-dir', sortDir === -1 ? '↓' : '↑'); }
+  renderTable();
+}
+
+function getFiltered() {
+  return ALL.filter(p => {
+    if (teamF !== 'ALL' && p.team !== teamF) return false;
+    if (fmtF === '2v2'  && !p.formats.includes('2v2')) return false;
+    if (fmtF === '3v3'  && !p.formats.includes('3v3')) return false;
+    if (fmtF === 'both' && p.formats.length < 2) return false;
+    if (searchQ && !p.name.toLowerCase().includes(searchQ) && !p.team.toLowerCase().includes(searchQ)) return false;
+    return true;
+  });
+}
+function getSorted(arr) {
+  return [...arr].sort((a,b) => {
+    const av = a.combined[sortCol] ?? (typeof a[sortCol] === 'string' ? a[sortCol] : 0);
+    const bv = b.combined[sortCol] ?? (typeof b[sortCol] === 'string' ? b[sortCol] : 0);
+    if (typeof av === 'string') return sortDir * av.localeCompare(bv);
+    return sortDir * (bv - av);
+  });
+}
+
+// ── RENDER TABLE ───────────────────────────────────────────
+function renderTable() {
+  const filtered = getFiltered();
+  const sorted   = getSorted(filtered);
+  const tbody    = document.getElementById('tbody');
+  const noRes    = document.getElementById('no-res');
+  document.getElementById('res-count').textContent = `${sorted.length} PLAYER${sorted.length !== 1 ? 'S' : ''}`;
+
+  if (!sorted.length) { tbody.innerHTML = ''; noRes.style.display = 'block'; return; }
+  noRes.style.display = 'none';
+
+  tbody.innerHTML = sorted.map(p => {
+    const rank  = ALL.indexOf(p) + 1;
+    const rc    = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : '';
+    const rl    = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+    const c     = p.combined;
+    const init  = p.name.slice(0,2).toUpperCase();
+    const spct  = (c.shotpct*100).toFixed(1);
+    const bw    = Math.min(c.rating, 100);
+    const bc    = c.rating >= 75 ? '#22d98a' : c.rating >= 55 ? '#4d8bff' : '#3d6080';
+    const fmtBadges = p.formats.length > 1
+      ? `<span class="fmt fmt-both">2V2+3V3</span>`
+      : p.formats.map(f => `<span class="fmt fmt-${f}">${f}</span>`).join('');
+    const idx = ALL.indexOf(p);
+
+    return `<tr class="${rc}" onclick="openModal(ALL[${idx}])">
+      <td>${rl}</td>
+      <td><div class="td-player">
+        <div class="p-av">${init}</div>
+        <div>
+          <div class="p-nm">${p.name}</div>
+          <div class="p-tm">${p.team}</div>
+          <div class="p-fmts">${fmtBadges}</div>
+        </div>
+      </div></td>
+      <td style="color:var(--text);font-size:13px;">${p.team}</td>
+      <td>${fmtBadges}</td>
+      <td>${c.gp}</td>
+      <td style="color:var(--white);font-weight:700;">${c.goals}</td>
+      <td>${c.assists}</td>
+      <td>${c.saves}</td>
+      <td>${c.shots}</td>
+      <td style="color:var(--blue-l);font-weight:700;">${spct}%</td>
+      <td>${c.gpg.toFixed(2)}</td>
+      <td>${c.apg.toFixed(2)}</td>
+      <td>${Math.round(c.scorepg)}</td>
+      <td><div class="str-wrap">
+        <div class="str-bg"><div class="str-fill" style="width:${bw}%;background:${bc};"></div></div>
+        <span class="str-num" style="color:${bc};">${c.rating}</span>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── MODAL ──────────────────────────────────────────────────
+function getTier(r) {
+  if (r >= 80) return { label:'ELITE',      color:'#22d98a' };
+  if (r >= 65) return { label:'STRONG',     color:'#4d8bff' };
+  if (r >= 45) return { label:'SOLID',      color:'#f0c040' };
+  return              { label:'DEVELOPING', color:'#3d6080' };
+}
+
+function statGrid(s, label) {
+  const sp = (s.shotpct*100).toFixed(1);
+  return `
+    <div class="m-grid">
+      <div class="m-stat"><div class="ms-v">${s.gp}</div><div class="ms-l">GAMES PLAYED</div></div>
+      <div class="m-stat"><div class="ms-v">${s.goals}</div><div class="ms-l">GOALS</div><div class="ms-s">${s.gpg.toFixed(2)}/gm</div></div>
+      <div class="m-stat"><div class="ms-v">${s.assists}</div><div class="ms-l">ASSISTS</div><div class="ms-s">${s.apg.toFixed(2)}/gm</div></div>
+      <div class="m-stat"><div class="ms-v">${s.saves}</div><div class="ms-l">SAVES</div><div class="ms-s">${s.spg.toFixed(2)}/gm</div></div>
+      <div class="m-stat"><div class="ms-v">${s.shots}</div><div class="ms-l">SHOTS</div></div>
+      <div class="m-stat"><div class="ms-v">${Math.round(s.scorepg)}</div><div class="ms-l">SCORE/GM</div><div class="ms-s">${s.score.toLocaleString()} total</div></div>
+      <div class="m-stat"><div class="ms-v">${s.demos}</div><div class="ms-l">DEMOS</div></div>
+      <div class="m-stat"><div class="ms-v">${s.rating}</div><div class="ms-l">⚡ RATING</div></div>
+      <div class="m-stat"><div class="ms-v">${label}</div><div class="ms-l">FORMAT</div></div>
+    </div>
+    <div class="m-shot">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:3px;color:var(--muted);">SHOT ACCURACY</span>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);">${s.goals} goals / ${s.shots} shots</span>
+      </div>
+      <div class="shot-row">
+        <div class="shot-bg"><div class="shot-fill" style="width:${Math.min(parseFloat(sp),100)}%;"></div></div>
+        <div class="shot-num">${sp}%</div>
+      </div>
+    </div>`;
+}
+
+let activeTab = null;
+
+function openModal(p) {
+  const c    = p.combined;
+  const tier = getTier(c.rating);
+  const init = p.name.slice(0,2).toUpperCase();
+  const fmtBadges = p.formats.map(f => `<span class="fmt fmt-${f}">${f}</span>`).join('');
+  const mvpBadge  = p.mvps > 0
+    ? `<span class="fmt" style="color:var(--gold);border-color:var(--gold);background:rgba(240,192,64,.08);">🏆 ${p.mvps} MVP${p.mvps>1?'s':''}</span>` : '';
+
+  // Build tabs — one per format + combined if multi-format
+  const isMulti = p.formats.length > 1;
+  let tabsHTML = '', panelsHTML = '';
+
+  if (isMulti) {
+    tabsHTML += `<button class="m-tab combined active" onclick="switchTab(event,'tab-combined')">COMBINED</button>`;
+    panelsHTML += `<div class="tab-panel active" id="tab-combined">${statGrid(c, 'COMBINED')}</div>`;
+  }
+
+  p.formats.forEach((fmt, i) => {
+    const s   = derived(sumStats(p.stats.filter(x => x.format === fmt)));
+    const cls = isMulti ? '' : 'active';
+    tabsHTML   += `<button class="m-tab tab-${fmt} ${cls}" onclick="switchTab(event,'tab-${fmt}')">${fmt.toUpperCase()}</button>`;
+    panelsHTML += `<div class="tab-panel ${cls}" id="tab-${fmt}">${statGrid(s, fmt.toUpperCase())}</div>`;
+  });
+
+  document.getElementById('modal-content').innerHTML = `
+    <div class="m-head">
+      <div class="m-av">${init}</div>
+      <div class="m-info">
+        <div class="m-name">${p.name}</div>
+        <div class="m-team">${p.team}</div>
+        <div class="m-badges">${fmtBadges}
+          <span class="fmt" style="color:${tier.color};border-color:${tier.color};background:${tier.color}18;">${tier.label}</span>
+          ${mvpBadge}
+          ${isMulti ? `<span class="fmt fmt-both">MULTI-FORMAT</span>` : ''}
+        </div>
+      </div>
+      <div class="m-rating">
+        <div class="m-rat-num" style="color:${tier.color};text-shadow:0 0 24px ${tier.color}55;">${c.rating}</div>
+        <div class="m-rat-lbl">OVERALL RATING</div>
+        <div class="m-rat-tier" style="color:${tier.color};">${tier.label}</div>
+      </div>
+    </div>
+    ${isMulti || p.formats.length > 0 ? `<div class="m-tabs">${tabsHTML}</div>` : ''}
+    <div id="tab-panels">${panelsHTML}</div>
+  `;
+
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function switchTab(e, id) {
+  const panels = document.getElementById('tab-panels');
+  panels.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.m-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  e.target.classList.add('active');
+}
+
+function closeOverlay(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
+function closeModal() {
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>
